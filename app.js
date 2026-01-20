@@ -1,30 +1,40 @@
-// Set this after you deploy the Worker:
 const API_BASE = "https://odds-api.micstern.workers.dev";
 
 function $(id) { return document.getElementById(id); }
 
 function show(viewId) {
-  const views = ["view-loading", "view-create", "view-join", "view-locked"];
+  const views = ["view-loading", "view-create", "view-join", "view-admin", "view-locked"];
   for (const v of views) $(v).classList.add("hidden");
   $(viewId).classList.remove("hidden");
 }
 
 function setText(id, txt) { $(id).textContent = txt; }
 
-function getSessionIdFromUrl() {
+function getParams() {
   const url = new URL(window.location.href);
-  return url.searchParams.get("s");
+  return {
+    s: url.searchParams.get("s"),
+    a: url.searchParams.get("a")
+  };
 }
 
-function buildShareLink(sessionId) {
-  const url = new URL(window.location.href);
-  url.search = "";
-  url.searchParams.set("s", sessionId);
-  return url.toString();
+function buildLink(sessionId, adminToken) {
+  const base = new URL(window.location.href);
+  base.search = "";
+  base.searchParams.set("s", sessionId);
+
+  const shareLink = base.toString();
+
+  const adminUrl = new URL(window.location.href);
+  adminUrl.search = "";
+  adminUrl.searchParams.set("s", sessionId);
+  adminUrl.searchParams.set("a", adminToken);
+
+  return { shareLink, adminLink: adminUrl.toString() };
 }
 
-function toWhatsAppLink(text, link) {
-  const msg = `${text}\n${link}`;
+function toWhatsAppLink(label, link) {
+  const msg = `${label}\n${link}`;
   return `https://wa.me/?text=${encodeURIComponent(msg)}`;
 }
 
@@ -45,16 +55,21 @@ async function apiJson(path, opts) {
   return data;
 }
 
-// ---------- Create flow ----------
+// ---------- Create ----------
 async function handleCreateSubmit(ev) {
   ev.preventDefault();
 
   const maxX = Number($("maxX").value);
+  const creatorPick = Number($("creatorPick").value);
   const challenge = $("challenge").value.trim();
   const report = $("report").value.trim();
 
-  if (!Number.isFinite(maxX) || maxX < 1) {
-    alert("Maximalzahl X muss >= 1 sein.");
+  if (!Number.isInteger(maxX) || maxX < 1) {
+    alert("Maximalzahl X muss eine ganze Zahl >= 1 sein.");
+    return;
+  }
+  if (!Number.isInteger(creatorPick) || creatorPick < 1 || creatorPick > maxX) {
+    alert(`Deine Zahl muss zwischen 1 und ${maxX} liegen.`);
     return;
   }
   if (!challenge || !report) {
@@ -67,15 +82,16 @@ async function handleCreateSubmit(ev) {
   try {
     const out = await apiJson("/api/create", {
       method: "POST",
-      body: JSON.stringify({ maxX, challenge, report })
+      body: JSON.stringify({ maxX, challenge, report, creatorPick })
     });
 
-    const share = buildShareLink(out.sessionId);
+    const links = buildLink(out.sessionId, out.adminToken);
 
     $("create-result").classList.remove("hidden");
-    $("share-link").value = share;
+    $("share-link").value = links.shareLink;
+    $("admin-link").value = links.adminLink;
 
-    $("whatsapp-link").href = toWhatsAppLink("Odds Session:", share);
+    $("whatsapp-link").href = toWhatsAppLink("Odds (Challenger-Link):", links.shareLink);
 
   } catch (e) {
     alert(`Fehler: ${e.message}`);
@@ -84,19 +100,23 @@ async function handleCreateSubmit(ev) {
   }
 }
 
-// ---------- Join flow ----------
+async function copyValue(inputId) {
+  const el = $(inputId);
+  el.select();
+  el.setSelectionRange(0, el.value.length);
+  await navigator.clipboard.writeText(el.value);
+}
+
+// ---------- Join ----------
 async function loadSession(sessionId) {
-  const data = await apiJson(`/api/session/${encodeURIComponent(sessionId)}`, {
-    method: "GET"
-  });
-  return data;
+  return await apiJson(`/api/session/${encodeURIComponent(sessionId)}`, { method: "GET" });
 }
 
 async function handlePickSubmit(ev, sessionId, maxX) {
   ev.preventDefault();
 
   const pick = Number($("pick").value);
-  if (!Number.isFinite(pick) || pick < 1 || pick > maxX) {
+  if (!Number.isInteger(pick) || pick < 1 || pick > maxX) {
     alert(`Zahl muss zwischen 1 und ${maxX} liegen.`);
     return;
   }
@@ -111,13 +131,18 @@ async function handlePickSubmit(ev, sessionId, maxX) {
       body: JSON.stringify({ pick })
     });
 
+    const msg =
+      out.outcome === "challenger_lost"
+        ? `Gespeichert. Deine Zahl war ${out.pick}. Ergebnis: Du hast verloren (gleiche Zahl).`
+        : `Gespeichert. Deine Zahl war ${out.pick}. Ergebnis: Du hast gewonnen (nicht dieselbe Zahl).`;
+
     $("join-status").classList.remove("hidden");
-    $("join-status").textContent = `Gespeichert. Deine Zahl war: ${out.pick}. Session ist jetzt gesperrt.`;
+    $("join-status").textContent = msg;
+
     $("submit-btn").disabled = true;
     $("pick").disabled = true;
 
   } catch (e) {
-    // If session is locked, show locked view
     if (String(e.message).toLowerCase().includes("locked")) {
       show("view-locked");
       setText("locked-text", "Diese Session wurde bereits ausgelöst und ist gesperrt.");
@@ -129,10 +154,53 @@ async function handlePickSubmit(ev, sessionId, maxX) {
   }
 }
 
+// ---------- Admin ----------
+async function loadAdmin(sessionId, token) {
+  const q = new URLSearchParams({ token }).toString();
+  return await apiJson(`/api/admin/${encodeURIComponent(sessionId)}?${q}`, { method: "GET" });
+}
+
+async function handleRematchSubmit(ev, sessionId, token, maxX) {
+  ev.preventDefault();
+
+  const creatorPick = Number($("rematchCreatorPick").value);
+  if (!Number.isInteger(creatorPick) || creatorPick < 1 || creatorPick > maxX) {
+    alert(`Deine Zahl fürs Rückspiel muss zwischen 1 und ${maxX} liegen.`);
+    return;
+  }
+
+  $("rematch-btn").disabled = true;
+  $("rematch-result").classList.add("hidden");
+
+  try {
+    const out = await apiJson(`/api/session/${encodeURIComponent(sessionId)}/rematch`, {
+      method: "POST",
+      body: JSON.stringify({ token, creatorPick })
+    });
+
+    const links = buildLink(out.sessionId, out.adminToken);
+
+    $("rematch-result").classList.remove("hidden");
+    $("rematch-share-link").value = links.shareLink;
+    $("rematch-whatsapp-link").href = toWhatsAppLink("Odds (Rückspiel - Challenger-Link):", links.shareLink);
+
+  } catch (e) {
+    alert(`Fehler: ${e.message}`);
+  } finally {
+    $("rematch-btn").disabled = false;
+  }
+}
+
+// ---------- Init ----------
 async function init() {
   $("create-form").addEventListener("submit", handleCreateSubmit);
 
-  const sessionId = getSessionIdFromUrl();
+  $("copy-share-btn").addEventListener("click", () => copyValue("share-link"));
+  $("copy-admin-btn").addEventListener("click", () => copyValue("admin-link"));
+
+  $("copy-rematch-share-btn").addEventListener("click", () => copyValue("rematch-share-link"));
+
+  const { s: sessionId, a: adminToken } = getParams();
 
   if (!sessionId) {
     show("view-create");
@@ -142,6 +210,38 @@ async function init() {
   show("view-loading");
 
   try {
+    if (adminToken) {
+      // Admin view
+      const data = await loadAdmin(sessionId, adminToken);
+
+      show("view-admin");
+      setText("admin-challenge", data.challenge);
+      setText("admin-report", data.report);
+
+      const statusEl = $("admin-status");
+      if (!data.locked) {
+        statusEl.textContent = "Noch nicht ausgelöst. Warte auf Challenger.";
+      } else {
+        const outcomeText =
+          data.outcome === "challenger_lost"
+            ? "Challenger hat verloren (gleiche Zahl)."
+            : "Challenger hat gewonnen (nicht dieselbe Zahl).";
+
+        statusEl.textContent =
+          `Ausgelöst.\nChallenger-Zahl: ${data.challengerPick}\nCreator-Zahl: ${data.creatorPick}\nErgebnis: ${outcomeText}`;
+      }
+
+      $("rematchCreatorPick").min = "1";
+      $("rematchCreatorPick").max = String(data.maxX);
+
+      $("rematch-form").addEventListener("submit", (ev) =>
+        handleRematchSubmit(ev, sessionId, adminToken, data.maxX)
+      );
+
+      return;
+    }
+
+    // Challenger view
     const session = await loadSession(sessionId);
 
     if (session.locked) {
@@ -151,12 +251,10 @@ async function init() {
     }
 
     show("view-join");
-
     setText("join-challenge", session.challenge);
     setText("join-report", session.report);
     setText("join-maxX", String(session.maxX));
 
-    // Ensure input respects max
     $("pick").min = "1";
     $("pick").max = String(session.maxX);
 
