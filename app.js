@@ -1,5 +1,5 @@
 // Set this after you deploy the Worker:
-const API_BASE = "https://YOUR_WORKER_SUBDOMAIN.workers.dev";
+const API_BASE = "https://odds-api.micstern.workers.dev";
 
 function $(id) { return document.getElementById(id); }
 
