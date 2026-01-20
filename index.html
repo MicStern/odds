@@ -10,7 +10,7 @@
   <main class="container">
     <header class="header">
       <h1>Odds</h1>
-      <p class="sub">Session erstellen, Link teilen, einmalig auslösen. Gleiche Zahl = Challenger verliert.</p>
+      <p class="sub">Creator setzt X + Zahl. Challenger tippt. Gleiche Zahl = Challenger verliert.</p>
     </header>
 
     <section id="view-loading" class="card">
@@ -19,7 +19,7 @@
     </section>
 
     <section id="view-create" class="card hidden">
-      <h2>Session erstellen</h2>
+      <h2>Challenge erstellen</h2>
 
       <form id="create-form">
         <label>
@@ -33,16 +33,11 @@
         </label>
 
         <label>
-          Challenge
-          <textarea id="challenge" rows="3" maxlength="500" required></textarea>
+          Challenge (Text)
+          <textarea id="challenge" rows="4" maxlength="800" required></textarea>
         </label>
 
-        <label>
-          Spielbericht / Kontext
-          <textarea id="report" rows="4" maxlength="2000" required></textarea>
-        </label>
-
-        <button type="submit" id="create-btn">Link erzeugen</button>
+        <button type="submit" id="create-btn">Links erzeugen</button>
       </form>
 
       <div id="create-result" class="result hidden">
@@ -59,31 +54,26 @@
         </div>
 
         <label style="margin-top:14px;">
-          Admin-Link (nur für dich, für Status + Rückspiel)
+          Ergebnis-Link (nur für dich)
           <input id="admin-link" type="text" readonly />
         </label>
 
         <div class="row">
-          <button id="copy-admin-btn" type="button">Admin-Link kopieren</button>
+          <button id="copy-admin-btn" type="button">Ergebnis-Link kopieren</button>
         </div>
 
         <p class="hint">
-          Admin-Link niemals an den Challenger schicken. Der ist nur zum Prüfen und fürs Rückspiel.
+          Ergebnis-Link niemals an den Challenger schicken.
         </p>
       </div>
     </section>
 
     <section id="view-join" class="card hidden">
-      <h2>Session</h2>
+      <h2>Challenge</h2>
 
       <div class="block">
-        <h3>Challenge</h3>
+        <h3>Text</h3>
         <p id="join-challenge" class="pre"></p>
-      </div>
-
-      <div class="block">
-        <h3>Spielbericht</h3>
-        <p id="join-report" class="pre"></p>
       </div>
 
       <div class="block">
@@ -104,7 +94,7 @@
     </section>
 
     <section id="view-admin" class="card hidden">
-      <h2>Admin</h2>
+      <h2>Ergebnis</h2>
 
       <div class="block">
         <h3>Challenge</h3>
@@ -112,47 +102,19 @@
       </div>
 
       <div class="block">
-        <h3>Spielbericht</h3>
-        <p id="admin-report" class="pre"></p>
-      </div>
-
-      <div class="block">
         <h3>Status</h3>
         <div id="admin-status" class="result"></div>
-      </div>
-
-      <div class="block">
-        <h3>Rückspiel</h3>
-        <p class="hint">Erzeugt eine neue Session mit derselben Challenge und demselben Bericht.</p>
-
-        <form id="rematch-form">
-          <label>
-            Deine neue Zahl (Creator) zwischen 1 und X
-            <input id="rematchCreatorPick" type="number" min="1" required />
-          </label>
-
-          <button type="submit" id="rematch-btn">Rückspiel-Link erzeugen</button>
-        </form>
-
-        <div id="rematch-result" class="result hidden">
-          <h4>Neuer Challenger-Link</h4>
-          <input id="rematch-share-link" type="text" readonly />
-          <div class="row">
-            <button id="copy-rematch-share-btn" type="button">Kopieren</button>
-            <a id="rematch-whatsapp-link" class="button secondary" target="_blank" rel="noreferrer">WhatsApp</a>
-          </div>
-        </div>
       </div>
     </section>
 
     <section id="view-locked" class="card hidden">
       <h2>Session bereits ausgelöst</h2>
       <p id="locked-text"></p>
-      <p class="hint">Rückspiel geht nur über den Admin-Link.</p>
+      <p class="hint">Wenn du ein neues Spiel willst: neue Challenge erstellen.</p>
     </section>
 
     <footer class="footer">
-      <a id="new-link" href="./">Neue Session erstellen</a>
+      <a id="new-link" href="./">Neue Challenge erstellen</a>
     </footer>
   </main>
 
