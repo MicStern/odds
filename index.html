@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Odds</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1>Odds</h1>
+      <p class="sub">Session-Link erstellen, teilen, einmalig auslösen.</p>
+    </header>
+
+    <section id="view-loading" class="card">
+      <h2>Lade...</h2>
+      <p>Bitte einen Moment.</p>
+    </section>
+
+    <section id="view-create" class="card hidden">
+      <h2>Session erstellen</h2>
+
+      <form id="create-form">
+        <label>
+          Maximalzahl X (z. B. 10)
+          <input id="maxX" type="number" min="1" max="1000000" required />
+        </label>
+
+        <label>
+          Challenge (z. B. "Du musst heute ...")
+          <textarea id="challenge" rows="3" maxlength="500" required></textarea>
+        </label>
+
+        <label>
+          Spielbericht / Kontext
+          <textarea id="report" rows="4" maxlength="2000" required></textarea>
+        </label>
+
+        <button type="submit" id="create-btn">Link erzeugen</button>
+      </form>
+
+      <div id="create-result" class="result hidden">
+        <h3>Dein Link</h3>
+        <input id="share-link" type="text" readonly />
+        <div class="row">
+          <button id="copy-btn" type="button">Kopieren</button>
+          <a id="whatsapp-link" class="button secondary" target="_blank" rel="noreferrer">WhatsApp</a>
+        </div>
+        <p class="hint">
+          Wichtig: Der Link ist die Session. Teile ihn mit der anderen Person.
+        </p>
+      </div>
+    </section>
+
+    <section id="view-join" class="card hidden">
+      <h2>Session</h2>
+
+      <div class="block">
+        <h3>Challenge</h3>
+        <p id="join-challenge" class="pre"></p>
+      </div>
+
+      <div class="block">
+        <h3>Spielbericht</h3>
+        <p id="join-report" class="pre"></p>
+      </div>
+
+      <div class="block">
+        <h3>Wähle deine Zahl</h3>
+        <p>
+          Bereich: <strong>1</strong> bis <strong id="join-maxX"></strong>
+        </p>
+
+        <form id="submit-form">
+          <label>
+            Deine Zahl
+            <input id="pick" type="number" min="1" required />
+          </label>
+
+          <button type="submit" id="submit-btn">Einmalig abschicken</button>
+        </form>
+
+        <div id="join-status" class="result hidden"></div>
+      </div>
+    </section>
+
+    <section id="view-locked" class="card hidden">
+      <h2>Session bereits ausgelöst</h2>
+      <p id="locked-text"></p>
+      <p class="hint">Wenn du einen neuen Versuch willst: neue Session erstellen.</p>
+    </section>
+
+    <footer class="footer">
+      <a id="new-link" href="./">Neue Session erstellen</a>
+    </footer>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
